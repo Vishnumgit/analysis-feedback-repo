@@ -2,7 +2,7 @@
 
 const express = require('express');
 const { body, param, query, validationResult } = require('express-validator');
-const pool = require('../config/database');
+const db = require('../config/database');
 const router = express.Router();
 
 const validate = (req, res, next) => {
@@ -31,8 +31,19 @@ router.post(
     try {
       const { product_id, platform, duration, user_agent } = req.body;
 
+      if (!db.dbAvailable || !db.pool) {
+        return res.json({
+          session_id: `session_${Date.now()}`,
+          product_id,
+          platform: platform || null,
+          duration: duration != null ? duration : null,
+          logged_at: new Date(),
+          source: 'mock_data',
+        });
+      }
+
       // Verify product exists before logging session
-      const productCheck = await pool.query(
+      const productCheck = await db.pool.query(
         'SELECT product_id FROM products WHERE product_id = $1',
         [product_id]
       );
@@ -40,7 +51,7 @@ router.post(
         return res.status(404).json({ error: 'Product not found' });
       }
 
-      const result = await pool.query(
+      const result = await db.pool.query(
         `INSERT INTO ar_sessions (product_id, platform, duration_sec, user_agent)
          VALUES ($1, $2, $3, $4)
          RETURNING session_id, product_id, platform, duration_sec AS duration, created_at AS logged_at`,
@@ -80,8 +91,21 @@ router.get(
       const { productId } = req.params;
       const days = req.query.days || 30;
 
+      if (!db.dbAvailable || !db.pool) {
+        return res.json({
+          product_id:           productId,
+          total_views:          1250,
+          total_qr_scans:       87,
+          avg_session_duration: 45,
+          unique_users:         320,
+          conversion_rate:      0.256,
+          period_days:          days,
+          source:               'mock_data',
+        });
+      }
+
       // Verify product exists
-      const productCheck = await pool.query(
+      const productCheck = await db.pool.query(
         'SELECT product_id FROM products WHERE product_id = $1',
         [productId]
       );
@@ -90,7 +114,7 @@ router.get(
       }
 
       // Aggregate session stats
-      const sessionStats = await pool.query(
+      const sessionStats = await db.pool.query(
         `SELECT
            COUNT(*)                              AS total_views,
            COALESCE(AVG(duration_sec), 0)        AS avg_session_duration,
@@ -102,7 +126,7 @@ router.get(
       );
 
       // Aggregate QR scan count
-      const scanStats = await pool.query(
+      const scanStats = await db.pool.query(
         `SELECT COALESCE(SUM(scan_count), 0) AS total_qr_scans
          FROM qr_mappings
          WHERE product_id = $1`,

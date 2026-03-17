@@ -1,5 +1,6 @@
 const express = require('express');
-const pool = require('../config/database');
+const db = require('../config/database');
+const { MOCK_PRODUCTS, MOCK_QR_MAPPINGS } = require('../config/mockData');
 const router = express.Router();
 
 /**
@@ -11,7 +12,18 @@ router.get('/:qrCode', async (req, res) => {
   try {
     const { qrCode } = req.params;
 
-    const result = await pool.query(
+    if (!db.dbAvailable || !db.pool) {
+      const mapping = MOCK_QR_MAPPINGS.find((q) => q.qr_code === qrCode);
+      if (!mapping) return res.status(404).json({ error: 'QR code not found' });
+      const product = MOCK_PRODUCTS.find((p) => p.product_id === mapping.product_id);
+      if (!product) return res.status(404).json({ error: 'QR code not found' });
+      return res.json({
+        data: { ...product, qr_id: mapping.qr_id, scan_count: mapping.scan_count },
+        source: 'mock_data',
+      });
+    }
+
+    const result = await db.pool.query(
       `SELECT
          p.product_id,
          p.product_name,
@@ -51,8 +63,15 @@ router.post('/:qrCode/scan', async (req, res) => {
     const { qrCode } = req.params;
     const { user_agent, latitude, longitude } = req.body;
 
+    if (!db.dbAvailable || !db.pool) {
+      const mapping = MOCK_QR_MAPPINGS.find((q) => q.qr_code === qrCode);
+      if (!mapping) return res.status(404).json({ error: 'QR code not found' });
+      mapping.scan_count += 1;
+      return res.json({ success: true, message: 'Scan recorded', source: 'mock_data' });
+    }
+
     // Increment scan counter
-    const updateResult = await pool.query(
+    const updateResult = await db.pool.query(
       `UPDATE qr_mappings
          SET scan_count = scan_count + 1,
              last_scanned_at = NOW()
@@ -68,7 +87,7 @@ router.post('/:qrCode/scan', async (req, res) => {
     const { qr_id, product_id } = updateResult.rows[0];
 
     // Record session analytics
-    await pool.query(
+    await db.pool.query(
       `INSERT INTO ar_sessions (qr_id, product_id, user_agent, latitude, longitude)
        VALUES ($1, $2, $3, $4, $5)`,
       [qr_id, product_id, user_agent || null, latitude || null, longitude || null]
