@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS ar_sessions (
     latitude     FLOAT,
     longitude    FLOAT,
     duration_sec INT,                               -- seconds spent in AR
+    platform     VARCHAR(50),                       -- e.g. 'web' | 'mobile'
     created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
