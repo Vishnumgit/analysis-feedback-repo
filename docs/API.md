@@ -1,6 +1,6 @@
 # API Documentation
 
-Base URL: `http://localhost:3000` (development) | `https://api.yourdomain.com` (production)
+Base URL: `http://localhost:3000` (development) | `https://analysis-feedback-repo.onrender.com` (production)
 
 All responses are JSON. Successful responses use HTTP 2xx. Errors include an `error` field.
 

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Random Joke Generator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      font-family: system-ui, -apple-system, sans-serif;
+      color: #f0f0f0;
+      padding: 1.5rem;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.07);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 1.25rem;
+      padding: 2rem 2.25rem;
+      max-width: 560px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    }
+
+    .emoji { font-size: 3rem; margin-bottom: 0.75rem; }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      color: #93c5fd;
+    }
+
+    .joke-area {
+      min-height: 6rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      justify-content: center;
+      margin-bottom: 1.75rem;
+    }
+
+    #joke-setup {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      line-height: 1.5;
+    }
+
+    #joke-punchline {
+      font-size: 1rem;
+      color: #fbbf24;
+      font-style: italic;
+      line-height: 1.5;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    #joke-punchline.visible { opacity: 1; }
+
+    .controls { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, opacity 0.15s;
+    }
+    .btn:hover  { opacity: 0.88; transform: scale(1.03); }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    .btn-primary { background: #3b82f6; color: #fff; }
+    .btn-reveal  { background: #f59e0b; color: #1a1a1a; }
+    .btn-copy    { background: rgba(255,255,255,0.12); color: #f0f0f0; border: 1px solid rgba(255,255,255,0.2); }
+
+    .category-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+    }
+
+    .chip {
+      padding: 0.3rem 0.85rem;
+      border-radius: 2rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1.5px solid rgba(255,255,255,0.18);
+      background: transparent;
+      color: #cbd5e1;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .chip:hover          { background: rgba(255,255,255,0.1); }
+    .chip.active         { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+
+    .status {
+      font-size: 0.82rem;
+      color: #94a3b8;
+      margin-top: 1rem;
+      min-height: 1.2em;
+    }
+
+    .counter {
+      font-size: 0.78rem;
+      color: #64748b;
+      margin-top: 0.5rem;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+    .loading { animation: pulse 1s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="emoji">😄</div>
+    <h1>Random Joke Generator</h1>
+
+    <!-- Category chips -->
+    <div class="category-row" id="categories">
+      <button class="chip active" data-cat="Any">Any</button>
+      <button class="chip" data-cat="Programming">Programming</button>
+      <button class="chip" data-cat="Pun">Pun</button>
+      <button class="chip" data-cat="Misc">Misc</button>
+      <button class="chip" data-cat="Dark">Dark</button>
+      <button class="chip" data-cat="Spooky">Spooky</button>
+      <button class="chip" data-cat="Christmas">Christmas</button>
+    </div>
+
+    <!-- Joke display -->
+    <div class="joke-area">
+      <p id="joke-setup">Press "Get Joke" to start laughing!</p>
+      <p id="joke-punchline"></p>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button id="btn-joke"   class="btn btn-primary">😂 Get Joke</button>
+      <button id="btn-reveal" class="btn btn-reveal"  style="display:none">🥁 Reveal Punchline</button>
+      <button id="btn-copy"   class="btn btn-copy"    style="display:none">📋 Copy Joke</button>
+    </div>
+
+    <p class="status"  id="status"></p>
+    <p class="counter" id="counter"></p>
+  </div>
+
+  <script>
+    // ── State ──────────────────────────────────────────────────────
+    const JOKE_API = 'https://v2.jokeapi.dev/joke';
+    const SAFE_FLAGS = 'blacklistFlags=nsfw,racist,sexist,explicit';
+
+    let currentJoke  = null;
+    let jokeCount    = 0;
+    let selectedCat  = 'Any';
+    let isTwoPartPending = false;
+
+    // ── DOM refs ───────────────────────────────────────────────────
+    const setupEl    = document.getElementById('joke-setup');
+    const punchEl    = document.getElementById('joke-punchline');
+    const btnJoke    = document.getElementById('btn-joke');
+    const btnReveal  = document.getElementById('btn-reveal');
+    const btnCopy    = document.getElementById('btn-copy');
+    const statusEl   = document.getElementById('status');
+    const counterEl  = document.getElementById('counter');
+
+    // ── Category chips ─────────────────────────────────────────────
+    document.getElementById('categories').addEventListener('click', (e) => {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      selectedCat = chip.dataset.cat;
+    });
+
+    // ── Fetch joke ─────────────────────────────────────────────────
+    async function fetchJoke() {
+      const url = `${JOKE_API}/${encodeURIComponent(selectedCat)}?${SAFE_FLAGS}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`API returned ${res.status}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.message || 'Joke API error');
+      return data;
+    }
+
+    function setStatus(msg, loading = false) {
+      statusEl.textContent = msg;
+      statusEl.classList.toggle('loading', loading);
+    }
+
+    function resetUI() {
+      punchEl.textContent = '';
+      punchEl.classList.remove('visible');
+      btnReveal.style.display = 'none';
+      btnCopy.style.display   = 'none';
+      isTwoPartPending        = false;
+    }
+
+    // ── Get Joke handler ───────────────────────────────────────────
+    btnJoke.addEventListener('click', async () => {
+      resetUI();
+      btnJoke.disabled = true;
+      setStatus('Fetching a joke…', true);
+      setupEl.textContent = '…';
+
+      try {
+        currentJoke = await fetchJoke();
+        jokeCount++;
+        counterEl.textContent = `Jokes told: ${jokeCount}`;
+        setStatus('');
+
+        if (currentJoke.type === 'single') {
+          setupEl.textContent = currentJoke.joke;
+          btnCopy.style.display = 'block';
+        } else {
+          // two-part joke
+          setupEl.textContent  = currentJoke.setup;
+          isTwoPartPending     = true;
+          btnReveal.style.display = 'block';
+        }
+      } catch (err) {
+        setupEl.textContent = 'Oops! Could not fetch a joke. Try again.';
+        setStatus(`Error: ${err.message}`);
+        currentJoke = null;
+      } finally {
+        btnJoke.disabled = false;
+      }
+    });
+
+    // ── Reveal punchline ───────────────────────────────────────────
+    btnReveal.addEventListener('click', () => {
+      if (!currentJoke || !isTwoPartPending) return;
+      punchEl.textContent = currentJoke.delivery;
+      punchEl.classList.add('visible');
+      btnReveal.style.display = 'none';
+      btnCopy.style.display   = 'block';
+      isTwoPartPending        = false;
+    });
+
+    // ── Copy to clipboard ──────────────────────────────────────────
+    btnCopy.addEventListener('click', () => {
+      if (!currentJoke) return;
+      const text = currentJoke.type === 'single'
+        ? currentJoke.joke
+        : `${currentJoke.setup}\n\n${currentJoke.delivery}`;
+
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btnCopy.textContent;
+        btnCopy.textContent = '✅ Copied!';
+        setTimeout(() => { btnCopy.textContent = orig; }, 1500);
+      }).catch(() => {
+        setStatus('Could not copy – please copy manually.');
+      });
+    });
+  </script>
+</body>
+</html>
