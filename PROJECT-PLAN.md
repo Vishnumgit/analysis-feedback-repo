@@ -1,50 +1,49 @@
-# Comprehensive Documentation for QR to 3D AR Hybrid Visualization System
+# Project Documentation for QR to 3D AR Hybrid Visualization System
 
-## Full System Architecture
-- Overview of the system architecture including components, modules, and interactions.
-- Diagrams to visualize the structure.
+## System Architecture
 
-## Data Flow Diagrams (DFD)
-### Level 0
-- A high-level overview of the system’s processes.
+The system architecture consists of the following components:
+1. **QR Code Generator**: Generates unique QR codes for each 3D model.
+2. **3D Model Repository**: Stores all 3D models accessible through the QR codes.
+3. **Web Server**: Hosts the API that serves the 3D models.
+4. **Mobile Application**: Scans the QR code and renders the corresponding 3D model in augmented reality.
 
-### Level 1
-- Detailed breakdown of main processes and data stores.
+## Data Flow Diagrams (DFDs)
 
-### Level 2
-- Further detail into sub-processes and flows.
+- **Level 0**: High-level overview of components and data flow.
+- **Level 1**: Detailed breakdown of each component's interactions.
 
-## Entity-Relationship (ER) Diagrams
-- Visual representation of the database schema including entities and relationships.
+## Entity-Relationship Diagrams (ER Diagrams)
+
+![ER Diagram](path/to/your/er-diagram.png)  
+- Entities: Users, QR Codes, 3D Models, Sessions.
 
 ## Development Roadmap
-### Phases
-1. **Initiation**: Requirement gathering and feasibility study.
-2. **Design**: System design and architecture planning.
-3. **Development**: Coding and integration.
-4. **Testing**: Quality assurance and bug fixing.
-5. **Deployment**: Deployment to the production environment.
-6. **Maintenance**: Ongoing support and updates.
 
-## API Endpoints
-- List of all endpoints, parameters, and responses for the system’s APIs.
+1. **Phase 1**: Requirement gathering and analysis (Q1 2026).
+2. **Phase 2**: Design and prototyping (Q2 2026).
+3. **Phase 3**: Development and testing (Q3 2026).
+4. **Phase 4**: Deployment and feedback (Q4 2026).
+
+## API Specifications
+
+- **GET /api/models/{qr_code}**: Retrieve the 3D model associated with a specific QR code.
+- **POST /api/models**: Upload a new 3D model.
 
 ## Database Schema
-- Description of each table, columns, data types, and relationships between tables.
 
-## Technical Stack Details
-- Technologies and tools used for development including programming languages, frameworks, databases, and hosting services.
+- **Users Table**: `user_id`, `username`, `email`, `password`.
+- **Models Table**: `model_id`, `qr_code`, `model_data`, `user_id`.
 
-## Deployment Guidelines
-- Steps and procedures for deploying the application on servers.
+## Deployment Guides
 
-## Implementation Checklist
-- A checklist to ensure all tasks are completed before and after deployment, including:
-  - Code review
-  - Testing
-  - Documentation
-  - Deployment verification
-  - User training
-  
-## Last Updated
-- 2026-03-17 13:42:02 UTC
+1. Setup the web server with Node.js.
+2. Configure the database using MySQL.
+3. Deploy the mobile application using Flutter.
+
+## Technology Stack
+
+- Backend: Node.js, Express.js
+- Frontend: Flutter
+- Database: MySQL
+- Cloud: AWS/Azure for hosting.
