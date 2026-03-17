@@ -66,6 +66,10 @@ app.use((_req, res, next) => {
 });
 
 // ── Routes ────────────────────────────────────────────────────
+app.get('/', (_req, res) => {
+  res.json({ message: 'QR 3D AR Backend API', version: '1.0.0' });
+});
+
 app.get('/api/health', (_req, res) => {
   res.json({
     status: '✅ API Running',
