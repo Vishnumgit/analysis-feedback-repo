@@ -170,6 +170,48 @@ Create a new product entry (admin use).
 
 ---
 
+## Analytics
+
+### `POST /api/analytics/session`
+
+Log an AR session event (called automatically by the WebAR viewer).
+
+**Request body**
+```json
+{
+  "product_id": 1,
+  "platform": "web",
+  "duration": 45,
+  "user_agent": "Mozilla/5.0…",
+  "latitude": 37.7749,
+  "longitude": -122.4194
+}
+```
+
+| Field        | Type    | Required | Description                        |
+|--------------|---------|----------|------------------------------------|
+| `product_id` | integer | ✅       | ID of the viewed product           |
+| `platform`   | string  | –        | `web` or `mobile`                  |
+| `duration`   | number  | –        | Seconds spent in AR                |
+| `user_agent` | string  | –        | Browser user-agent string          |
+| `latitude`   | number  | –        | GPS latitude (–90 to 90)           |
+| `longitude`  | number  | –        | GPS longitude (–180 to 180)        |
+
+**Response 201**
+```json
+{
+  "success": true,
+  "data": {
+    "session_id": 1,
+    "product_id": 1,
+    "platform": "web",
+    "created_at": "2026-03-17T12:00:00.000Z"
+  }
+}
+```
+
+---
+
 ## Error Codes
 
 | Code | Meaning                        |
