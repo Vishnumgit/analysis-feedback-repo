@@ -38,7 +38,7 @@ Internet → CDN/Edge (Vercel/Netlify)
    - `JWT_SECRET` – random 32+ char string
    - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
    - `ALLOWED_ORIGINS` – your frontend URL (e.g. `https://myapp.vercel.app`)
-6. Deploy → note the service URL (e.g. `https://qr-ar-api.onrender.com`)
+6. Deploy → your service URL will be `https://analysis-feedback-repo.onrender.com`
 
 ---
 
@@ -91,9 +91,9 @@ Railway can host both backend and PostgreSQL together:
 After deploying:
 
 ```bash
-curl https://your-api.onrender.com/api/health
+curl https://analysis-feedback-repo.onrender.com/api/health
 # Expected: { "status": "ok", "timestamp": "…" }
 
-curl https://your-api.onrender.com/api/products
+curl https://analysis-feedback-repo.onrender.com/api/products
 # Expected: { "data": [...], "pagination": { … } }
 ```

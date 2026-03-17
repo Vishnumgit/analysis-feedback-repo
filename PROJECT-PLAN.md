@@ -38,8 +38,24 @@ The system architecture consists of the following components:
 ## Deployment Guides
 
 1. Setup the web server with Node.js.
-2. Configure the database using MySQL.
-3. Deploy the mobile application using Flutter.
+2. Configure the database using PostgreSQL / Supabase.
+3. Deploy the backend to Render.
+4. Deploy the frontend to Vercel.
+
+### Production URLs
+
+| Service | URL |
+|---------|-----|
+| Backend API | https://analysis-feedback-repo.onrender.com |
+| Health endpoint | https://analysis-feedback-repo.onrender.com/api/health |
+| Products endpoint | https://analysis-feedback-repo.onrender.com/api/products |
+
+### Environment Variables
+
+```env
+API_BASE_URL=https://analysis-feedback-repo.onrender.com
+VITE_API_URL=https://analysis-feedback-repo.onrender.com
+```
 
 ## Technology Stack
 
