@@ -14,7 +14,7 @@ Returns server status.
 
 **Response 200**
 ```json
-{ "status": "ok", "timestamp": "2026-03-17T12:00:00.000Z" }
+{ "status": "✅ API Running", "timestamp": "2026-03-17T12:00:00.000Z", "environment": "production" }
 ```
 
 ---
@@ -167,6 +167,72 @@ Create a new product entry (admin use).
 ```
 
 **Response 201** – returns the created product object.
+
+---
+
+## Analytics
+
+### `POST /api/analytics/session`
+
+Log an AR viewing session for a product.
+
+**Request body**
+```json
+{
+  "product_id": 1,
+  "platform": "web",
+  "duration": 45,
+  "user_agent": "Mozilla/5.0…"
+}
+```
+
+| Field        | Type    | Required | Description                        |
+|--------------|---------|----------|------------------------------------|
+| `product_id` | integer | ✅       | ID of the product viewed           |
+| `platform`   | string  | –        | e.g. `"web"`, `"ios"`, `"android"` |
+| `duration`   | integer | –        | Session length in seconds          |
+| `user_agent` | string  | –        | Client user-agent string           |
+
+**Response 200**
+```json
+{
+  "session_id": "session_1234567890",
+  "product_id": 1,
+  "platform": "web",
+  "duration": 45,
+  "logged_at": "2026-03-17T12:00:00.000Z"
+}
+```
+
+---
+
+### `GET /api/analytics/product/:productId`
+
+Return aggregated analytics for a product over a given period.
+
+**Query parameters**
+
+| Parameter | Type    | Default | Description                       |
+|-----------|---------|---------|-----------------------------------|
+| `days`    | integer | 30      | Lookback window in days (max 365) |
+
+**Response 200**
+```json
+{
+  "product_id": 1,
+  "total_views": 1250,
+  "total_qr_scans": 850,
+  "avg_session_duration": 45,
+  "unique_users": 320,
+  "conversion_rate": 0.256,
+  "period_days": 30
+}
+```
+
+**Response 404**
+```json
+{ "error": "Product not found" }
+```
 
 ---
 

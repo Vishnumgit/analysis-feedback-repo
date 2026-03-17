@@ -8,8 +8,9 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 
-const qrRoutes = require('./routes/qr');
-const productRoutes = require('./routes/products');
+const qrRoutes        = require('./routes/qr');
+const productRoutes   = require('./routes/products');
+const analyticsRoutes = require('./routes/analytics');
 
 const app = express();
 
@@ -66,11 +67,16 @@ app.use((_req, res, next) => {
 
 // ── Routes ────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({
+    status: '✅ API Running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+  });
 });
 
-app.use('/api/qr', qrRoutes);
-app.use('/api/products', productRoutes);
+app.use('/api/qr',        qrRoutes);
+app.use('/api/products',  productRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────
 app.use((_req, res) => {
