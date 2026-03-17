@@ -1,6 +1,7 @@
 const express = require('express');
 const { body, query, param, validationResult } = require('express-validator');
-const pool = require('../config/database');
+const db = require('../config/database');
+const { MOCK_PRODUCTS } = require('../config/mockData');
 const router = express.Router();
 
 // Validation helper
@@ -31,6 +32,18 @@ router.get(
       const offset = (page - 1) * limit;
       const category = req.query.category;
 
+      if (!db.dbAvailable || !db.pool) {
+        let data = MOCK_PRODUCTS;
+        if (category) data = data.filter((p) => p.category === category);
+        const total = data.length;
+        const paged = data.slice(offset, offset + limit);
+        return res.json({
+          data: paged,
+          pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+          source: 'mock_data',
+        });
+      }
+
       let queryText =
         'SELECT product_id, product_name, description, model_url, texture_url, width, height, depth, category, price, created_at FROM products';
       const params = [];
@@ -43,13 +56,13 @@ router.get(
       queryText += ` ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
       params.push(limit, offset);
 
-      const result = await pool.query(queryText, params);
+      const result = await db.pool.query(queryText, params);
 
       // Total count for pagination
       const countQuery = category
         ? 'SELECT COUNT(*) FROM products WHERE category = $1'
         : 'SELECT COUNT(*) FROM products';
-      const countResult = await pool.query(countQuery, category ? [category] : []);
+      const countResult = await db.pool.query(countQuery, category ? [category] : []);
       const total = parseInt(countResult.rows[0].count, 10);
 
       res.json({
@@ -73,7 +86,13 @@ router.get(
   validate,
   async (req, res) => {
     try {
-      const result = await pool.query(
+      if (!db.dbAvailable || !db.pool) {
+        const product = MOCK_PRODUCTS.find((p) => p.product_id === req.params.productId);
+        if (!product) return res.status(404).json({ error: 'Product not found' });
+        return res.json({ data: product, source: 'mock_data' });
+      }
+
+      const result = await db.pool.query(
         'SELECT * FROM products WHERE product_id = $1',
         [req.params.productId]
       );
@@ -112,7 +131,27 @@ router.post(
       const { product_name, description, model_url, texture_url, width, height, depth, category, price } =
         req.body;
 
-      const result = await pool.query(
+      if (!db.dbAvailable || !db.pool) {
+        // Assign a unique ID using max existing id + 1 to avoid collisions
+        const maxId = MOCK_PRODUCTS.reduce((m, p) => Math.max(m, p.product_id), 0);
+        const newProduct = {
+          product_id: maxId + 1,
+          product_name,
+          description: description || null,
+          model_url,
+          texture_url: texture_url || null,
+          width: width || null,
+          height: height || null,
+          depth: depth || null,
+          category: category || null,
+          price: price || null,
+          created_at: new Date(),
+        };
+        MOCK_PRODUCTS.push(newProduct);
+        return res.status(201).json({ data: newProduct, source: 'mock_data' });
+      }
+
+      const result = await db.pool.query(
         `INSERT INTO products (product_name, description, model_url, texture_url, width, height, depth, category, price)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          RETURNING *`,

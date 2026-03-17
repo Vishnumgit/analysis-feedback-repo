@@ -11,6 +11,7 @@ const rateLimit = require('express-rate-limit');
 const qrRoutes        = require('./routes/qr');
 const productRoutes   = require('./routes/products');
 const analyticsRoutes = require('./routes/analytics');
+const db              = require('./config/database');
 
 const app = express();
 
@@ -67,7 +68,11 @@ app.use((_req, res, next) => {
 
 // ── Routes ────────────────────────────────────────────────────
 app.get('/', (_req, res) => {
-  res.json({ message: 'QR 3D AR Backend API', version: '1.0.0' });
+  res.json({
+    message: 'QR 3D AR Backend API',
+    version: '1.0.0',
+    database: db.dbAvailable ? 'Connected' : 'Using Mock Data',
+  });
 });
 
 app.get('/api/health', (_req, res) => {
@@ -75,6 +80,7 @@ app.get('/api/health', (_req, res) => {
     status: '✅ API Running',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
+    database: db.dbAvailable ? '✅ Connected' : '⚠️ Using Mock Data',
   });
 });
 
