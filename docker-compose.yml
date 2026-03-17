@@ -1,0 +1,57 @@
+version: "3.9"
+
+services:
+  # ── PostgreSQL database ──────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: qr_3d_ar
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/001_init_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./database/seed_data.sql:/docker-entrypoint-initdb.d/02_seed.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d qr_3d_ar"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Express API backend ──────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@db:5432/qr_3d_ar"
+      NODE_ENV: development
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/src      # hot-reload in dev
+
+  # ── Static frontend (served by Vite dev server) ──────────────
+  web:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host"
+    restart: unless-stopped
+    environment:
+      VITE_API_BASE: "http://localhost:3000"
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./web:/app
+
+volumes:
+  postgres_data:
