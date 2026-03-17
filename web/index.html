@@ -1,1 +1,296 @@
-<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>WebAR Viewer</title>\n    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>\n    <script src="https://cdn.rawgit.com/mrdoob/three.js/r128/examples/jsm/webxr/VRButton.js"></script>\n</head>\n<body>\n    <script>\n        // Initialize Three.js scene\n        const scene = new THREE.Scene();\n        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);\n        const renderer = new THREE.WebGLRenderer();\n        renderer.setSize(window.innerWidth, window.innerHeight);\n        document.body.appendChild(renderer.domElement);\n\n        // Add VR Button for WebXR\n        document.body.appendChild(VRButton.createButton(renderer));\n        renderer.xr.enabled = true;\n\n        // Animation loop\n        function animate() {\n            renderer.render(scene, camera);\n            renderer.xr.tick();\n            requestAnimationFrame(animate);\n        }\n        animate();\n    </script>\n</body>\n</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="WebAR 3D Viewer – scan a QR code to view products in augmented reality" />
+  <title>QR → 3D AR Viewer</title>
+
+  <!-- Three.js r160 via CDN (ES module build) -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d0d0d;
+      color: #f0f0f0;
+      font-family: system-ui, sans-serif;
+      overflow: hidden;
+      height: 100dvh;
+    }
+
+    #canvas-container { position: fixed; inset: 0; }
+
+    /* Overlay UI */
+    #ui {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 1.5rem;
+      gap: 0.75rem;
+      pointer-events: none;
+    }
+
+    #product-card {
+      background: rgba(0,0,0,0.72);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 1rem;
+      padding: 1rem 1.25rem;
+      width: 100%;
+      max-width: 420px;
+      pointer-events: auto;
+      display: none;
+    }
+    #product-card h2 { font-size: 1.1rem; margin-bottom: 0.25rem; }
+    #product-card p  { font-size: 0.85rem; color: #aaa; margin-bottom: 0.5rem; }
+    #product-price   { font-size: 1.2rem; font-weight: 700; color: #6cf; }
+
+    .btn {
+      pointer-events: auto;
+      padding: 0.65rem 1.5rem;
+      border: none;
+      border-radius: 2rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn:hover  { opacity: 0.85; }
+    .btn:active { opacity: 0.7; }
+    .btn-primary { background: #3b82f6; color: #fff; }
+    .btn-ar      { background: #22c55e; color: #fff; }
+
+    #loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      background: #0d0d0d;
+      z-index: 10;
+    }
+    #loading.hidden { display: none; }
+
+    .spinner {
+      width: 48px; height: 48px;
+      border: 4px solid rgba(255,255,255,0.15);
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #error-msg {
+      position: fixed;
+      top: 1rem; left: 50%;
+      transform: translateX(-50%);
+      background: #ef4444;
+      color: #fff;
+      padding: 0.6rem 1.2rem;
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+      display: none;
+      z-index: 20;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <p id="loading-text">Loading 3D viewer…</p>
+  </div>
+
+  <div id="error-msg"></div>
+
+  <div id="canvas-container"></div>
+
+  <div id="ui">
+    <div id="product-card">
+      <h2 id="product-name">Product Name</h2>
+      <p  id="product-desc">Description</p>
+      <span id="product-price"></span>
+    </div>
+    <button id="btn-load" class="btn btn-primary">Load Demo Model</button>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader }    from 'three/addons/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { ARButton }      from 'three/addons/webxr/ARButton.js';
+
+    // Config – override via window.AR_CONFIG before this script runs
+    const API_BASE = (window.AR_CONFIG && window.AR_CONFIG.apiBase) ||
+                     'http://localhost:3000';
+
+    // Helpers
+    const $         = (id) => document.getElementById(id);
+    const showError = (msg) => {
+      const el = $('error-msg');
+      el.textContent    = msg;
+      el.style.display  = 'block';
+      setTimeout(() => { el.style.display = 'none'; }, 5000);
+    };
+    const setLoading = (visible, text = 'Loading…') => {
+      $('loading').classList.toggle('hidden', !visible);
+      $('loading-text').textContent = text;
+    };
+
+    // Parse QR code from URL: ?qr=qr_chair_001
+    const qrCode = new URLSearchParams(location.search).get('qr');
+
+    // ── Three.js Setup ────────────────────────────────────────
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x111111);
+
+    const camera = new THREE.PerspectiveCamera(
+      60, window.innerWidth / window.innerHeight, 0.01, 100
+    );
+    camera.position.set(0, 1.2, 2.5);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputColorSpace       = THREE.SRGBColorSpace;
+    renderer.toneMapping            = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure    = 1;
+    renderer.xr.enabled             = true;
+    $('canvas-container').appendChild(renderer.domElement);
+
+    // Orbit controls for desktop / non-AR preview
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0, 0.5, 0);
+
+    // Lighting
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    dirLight.position.set(3, 5, 3);
+    scene.add(dirLight);
+
+    // ── Model loading ─────────────────────────────────────────
+    const gltfLoader = new GLTFLoader();
+    let currentModel = null;
+
+    function loadGLTF(url) {
+      return new Promise((resolve, reject) => {
+        if (currentModel) { scene.remove(currentModel); currentModel = null; }
+        gltfLoader.load(url, (gltf) => {
+          currentModel = gltf.scene;
+          // Center + normalize scale to fit ~1 m bounding box
+          const box    = new THREE.Box3().setFromObject(currentModel);
+          const centre = box.getCenter(new THREE.Vector3());
+          const size   = box.getSize(new THREE.Vector3());
+          const maxDim = Math.max(size.x, size.y, size.z);
+          const s      = 1 / maxDim;
+          currentModel.position.set(-centre.x * s, -centre.y * s, -centre.z * s);
+          currentModel.scale.setScalar(s);
+          scene.add(currentModel);
+          resolve(currentModel);
+        }, undefined, reject);
+      });
+    }
+
+    function loadDemoModel() {
+      if (currentModel) scene.remove(currentModel);
+      const geo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0x3b82f6, roughness: 0.4, metalness: 0.3,
+      });
+      currentModel = new THREE.Mesh(geo, mat);
+      currentModel.position.set(0, 0.25, 0);
+      scene.add(currentModel);
+    }
+
+    // ── Product card ──────────────────────────────────────────
+    function showProductCard(p) {
+      $('product-name').textContent  = p.product_name;
+      $('product-desc').textContent  = p.description || '';
+      $('product-price').textContent = p.price ? `$${parseFloat(p.price).toFixed(2)}` : '';
+      $('product-card').style.display = 'block';
+    }
+
+    // ── AR Button ─────────────────────────────────────────────
+    async function setupARButton() {
+      if (!('xr' in navigator)) return;
+      const supported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
+      if (!supported) return;
+      const arBtn = ARButton.createButton(renderer, {
+        requiredFeatures: ['hit-test'],
+        optionalFeatures: ['dom-overlay'],
+        domOverlay: { root: $('ui') },
+      });
+      arBtn.className = 'btn btn-ar';
+      $('ui').appendChild(arBtn);
+    }
+
+    // ── Animation loop ────────────────────────────────────────
+    renderer.setAnimationLoop(() => {
+      controls.update();
+      if (currentModel && !renderer.xr.isPresenting) {
+        currentModel.rotation.y += 0.005;
+      }
+      renderer.render(scene, camera);
+    });
+
+    // ── Resize ────────────────────────────────────────────────
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // ── Button ────────────────────────────────────────────────
+    $('btn-load').addEventListener('click', () => {
+      loadDemoModel();
+      $('btn-load').textContent = 'Reload Demo';
+    });
+
+    // ── Entry point ───────────────────────────────────────────
+    (async () => {
+      try {
+        if (qrCode) {
+          setLoading(true, 'Fetching product…');
+          const res  = await fetch(`${API_BASE}/api/qr/${encodeURIComponent(qrCode)}`);
+          if (!res.ok) throw new Error(`API returned ${res.status}`);
+          const { data } = await res.json();
+          showProductCard(data);
+
+          setLoading(true, 'Loading 3D model…');
+          await loadGLTF(data.model_url);
+
+          // Fire-and-forget scan event
+          fetch(`${API_BASE}/api/qr/${encodeURIComponent(qrCode)}/scan`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_agent: navigator.userAgent }),
+          }).catch(() => {});
+        } else {
+          loadDemoModel();
+        }
+        await setupARButton();
+      } catch (err) {
+        showError('Failed to load model: ' + err.message);
+        loadDemoModel();
+      } finally {
+        setLoading(false);
+      }
+    })();
+  </script>
+</body>
+</html>
