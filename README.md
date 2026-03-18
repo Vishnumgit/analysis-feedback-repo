@@ -67,6 +67,16 @@ cd backend && cp .env.example .env && npm install && npm run dev
 cd web && npm install && npm run dev
 ```
 
+### Generate QR codes for menu items
+
+```bash
+cd web
+npm run generate:qr
+# Optional: QR_BASE_URL=https://example.com/#/i/ npm run generate:qr
+```
+
+PNG files are written to `web/public/qr/` with content like `https://analysis-feedback-repo-git-copilot-896c0c-vishnumgits-projects.vercel.app/#/i/<slug>`.
+
 ## 🌐 Environment Variables
 
 ```env
