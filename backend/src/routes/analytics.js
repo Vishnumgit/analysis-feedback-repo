@@ -3,6 +3,7 @@
 const express = require('express');
 const { body, param, query, validationResult } = require('express-validator');
 const db = require('../config/database');
+const { MOCK_PRODUCTS } = require('../config/mockData');
 const router = express.Router();
 
 const validate = (req, res, next) => {
@@ -32,12 +33,17 @@ router.post(
       const { product_id, platform, duration, user_agent } = req.body;
 
       if (!db.dbAvailable || !db.pool) {
+        const product = MOCK_PRODUCTS.find((p) => p.product_id === product_id);
+        if (!product) {
+          return res.status(404).json({ error: 'Product not found' });
+        }
+
         return res.json({
           session_id: `session_${Date.now()}`,
           product_id,
           platform: platform || null,
           duration: duration != null ? duration : null,
-          logged_at: new Date(),
+          logged_at: new Date().toISOString(),
           source: 'mock_data',
         });
       }
@@ -92,6 +98,11 @@ router.get(
       const days = req.query.days || 30;
 
       if (!db.dbAvailable || !db.pool) {
+        const exists = MOCK_PRODUCTS.some((p) => p.product_id === productId);
+        if (!exists) {
+          return res.status(404).json({ error: 'Product not found' });
+        }
+
         return res.json({
           product_id:           productId,
           total_views:          1250,

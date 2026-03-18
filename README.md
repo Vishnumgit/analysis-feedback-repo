@@ -20,6 +20,7 @@ In short: **scan a QR code → see the product as a live 3D / AR object**. The g
 | **Backend API** | https://analysis-feedback-repo.onrender.com |
 | **Health check** | https://analysis-feedback-repo.onrender.com/api/health |
 | **Products API** | https://analysis-feedback-repo.onrender.com/api/products |
+| **Analytics (sample)** | https://analysis-feedback-repo.onrender.com/api/analytics/product/1 |
 
 ## 🧩 Quick Test
 
@@ -29,6 +30,9 @@ curl https://analysis-feedback-repo.onrender.com/api/health
 
 curl https://analysis-feedback-repo.onrender.com/api/products
 # {"data":[...],"pagination":{...}}
+
+curl https://analysis-feedback-repo.onrender.com/api/analytics/product/1
+# {"product_id":1,"total_views":...}
 ```
 
 ## 🗂️ Project Structure
