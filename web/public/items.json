@@ -1,0 +1,12 @@
+[
+  { "slug": "veg-biryani", "name": "Veg Biryani", "price": 80, "description": "Aromatic rice with veggies & spices.", "type": "bowl" },
+  { "slug": "chicken-biryani", "name": "Chicken Biryani", "price": 120, "description": "Spiced chicken & basmati rice.", "type": "bowl" },
+  { "slug": "masala-dosa", "name": "Masala Dosa", "price": 50, "description": "Crispy dosa with potato masala.", "type": "plate" },
+  { "slug": "idli-sambar", "name": "Idli Sambar", "price": 40, "description": "Soft idlis served with sambar.", "type": "plate" },
+  { "slug": "paneer-butter-masala", "name": "Paneer Butter Masala", "price": 90, "description": "Creamy tomato gravy with paneer.", "type": "bowl" },
+  { "slug": "veg-fried-rice", "name": "Veg Fried Rice", "price": 70, "description": "Wok-tossed rice with veggies.", "type": "bowl" },
+  { "slug": "chai", "name": "Chai", "price": 15, "description": "Hot milk tea.", "type": "cup" },
+  { "slug": "coffee", "name": "Coffee", "price": 20, "description": "Strong filter coffee.", "type": "cup" },
+  { "slug": "samosa", "name": "Samosa", "price": 15, "description": "Crispy snack with potato filling.", "type": "plate" },
+  { "slug": "gulab-jamun", "name": "Gulab Jamun", "price": 30, "description": "Sweet dessert in sugar syrup.", "type": "cylinder" }
+]
