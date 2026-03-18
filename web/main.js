@@ -1,6 +1,55 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://analysis-feedback-repo.onrender.com').replace(
+  /\/+$/,
+  ''
+);
+
+const apiRequest = async (path, options = {}) => {
+  const url = `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+  const headers =
+    options.body !== undefined
+      ? { 'Content-Type': 'application/json', ...(options.headers || {}) }
+      : options.headers || {};
+
+  return fetch(url, { ...options, headers });
+};
+
+const Api = {
+  async fetchProductByQr(qrCode) {
+    const res = await apiRequest(`/api/qr/${encodeURIComponent(qrCode)}`);
+    if (res.status === 404) return null;
+    if (!res.ok) {
+      throw new Error(`API returned ${res.status}`);
+    }
+    const json = await res.json();
+    return json.data;
+  },
+
+  async recordScan(qrCode, payload = {}) {
+    try {
+      await apiRequest(`/api/qr/${encodeURIComponent(qrCode)}/scan`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    } catch (_err) {
+      // Non-blocking
+    }
+  },
+
+  async logSession(productId, payload = {}) {
+    try {
+      await apiRequest('/api/analytics/session', {
+        method: 'POST',
+        body: JSON.stringify({ product_id: productId, ...payload }),
+      });
+    } catch (_err) {
+      // Non-blocking
+    }
+  },
+};
+
 const $ = (id) => document.getElementById(id);
 
 function setLoading(visible, text = 'Loading…') {
@@ -24,6 +73,23 @@ function parseItemSlug() {
   // Back-compat: ?qr=<slug>
   const qp = new URLSearchParams(location.search);
   return qp.get('qr');
+}
+
+function detectPlatform() {
+  const ua = navigator.userAgent || '';
+  if (/android/i.test(ua)) return 'android';
+  if (/iphone|ipad|ipod/i.test(ua)) return 'ios';
+  return 'web';
+}
+
+function mapProductToCard(product, fallbackSlug) {
+  return {
+    slug: fallbackSlug,
+    name: product?.product_name || product?.name || fallbackSlug,
+    description: product?.description || '',
+    price: product?.price ?? product?.price_inr ?? '',
+    type: product?.type || product?.category || 'plate',
+  };
 }
 
 async function loadItems() {
@@ -152,22 +218,42 @@ async function renderFromRoute() {
   const slug = parseItemSlug();
   setLoading(true, 'Loading menu item…');
   try {
-    const items = await loadItems();
-    const item = items.find((x) => x.slug === slug);
-
     if (!slug) {
       showNotFound('');
       setModel(makePlaceholder('plate'));
       return;
     }
-    if (!item) {
+
+    let product = null;
+    try {
+      product = await Api.fetchProductByQr(slug);
+    } catch (apiErr) {
+      showError(apiErr.message || 'API unavailable, using local menu');
+    }
+
+    if (product) {
+      const item = mapProductToCard(product, slug);
+      showCard(item);
+      setModel(makePlaceholder(item.type || 'plate'));
+      Api.recordScan(slug, { user_agent: navigator.userAgent });
+      Api.logSession(product.product_id, {
+        platform: detectPlatform(),
+        duration: 0,
+        user_agent: navigator.userAgent,
+      });
+      return;
+    }
+
+    const items = await loadItems();
+    const fallback = items.find((x) => x.slug === slug);
+    if (!fallback) {
       showNotFound(slug);
       setModel(makePlaceholder('cylinder'));
       return;
     }
 
-    showCard(item);
-    setModel(makePlaceholder(item.type || 'plate'));
+    showCard(fallback);
+    setModel(makePlaceholder(fallback.type || 'plate'));
   } catch (e) {
     showError(e.message || String(e));
     showNotFound(slug || '');
