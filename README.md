@@ -2,6 +2,17 @@
 
 A hybrid web & mobile AR system for instant 3D product visualization via QR codes.
 
+## 💡 Main Idea
+
+The core idea of this project is to bridge the gap between physical products and digital 3D experiences using QR codes and Augmented Reality (AR):
+
+1. **Each product is assigned a unique QR code.** Retailers or manufacturers attach these QR codes to physical items, packaging, or catalogues.
+2. **Users scan the QR code** with any smartphone browser (no app download required).
+3. **The system fetches the matching 3D model** from the backend API and renders it instantly in the browser using Three.js and WebXR.
+4. **Users can view the product in AR**, placing the 3D model into their real environment via their phone camera, or inspect it in an interactive 3D viewer on desktop.
+
+In short: **scan a QR code → see the product as a live 3D / AR object**. The goal is to enhance online and in-store shopping by letting customers explore products in three dimensions before purchasing.
+
 ## 🚀 Live URLs
 
 | Service | URL |
