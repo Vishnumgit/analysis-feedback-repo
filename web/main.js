@@ -93,7 +93,7 @@ function mapProductToCard(product, fallbackSlug) {
 }
 
 async function loadItems() {
-  const res = await fetch('/items.json', { cache: 'no-store' });
+  const res = await fetch(new URL('items.json', import.meta.env.BASE_URL).href, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Failed to load items.json (${res.status})`);
   return await res.json();
 }
