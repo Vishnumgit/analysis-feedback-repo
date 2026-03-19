@@ -1,33 +1,29 @@
 # Smart Menu 3D AR - Backend API
 
-CodeWords backend service powering the Smart Menu 3D AR system.
+Node.js/Express backend powering the Smart Menu 3D AR system, deployed on **Render** (free tier).
 
-**Service ID:** `smart_menu_ar_api_9429c6e1`
+**Backend URL:** `https://analysis-feedback-repo.onrender.com`
 
 ## API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/health` | Health check |
-| GET | `/api/menu` | List all menu items (optional `?category=mains`) |
-| GET | `/api/menu/{id}` | Get item by ID |
-| GET | `/api/menu/slug/{slug}` | Get item by slug |
-| GET | `/api/analytics` | All item analytics |
-| GET | `/api/analytics/{id}` | Single item analytics |
-| POST | `/` | Main endpoint (list_menu, get_item, generate_qr, track_event, analytics) |
+| GET | `/api/health` | Health check |
+| GET | `/api/products` | List all products (optional `?category=mains&page=1&limit=20`) |
+| GET | `/api/products/:productId` | Get product by ID |
+| POST | `/api/products` | Create a new product |
+| GET | `/api/qr/:qrCode` | Look up product by QR code / slug |
+| POST | `/api/qr/:qrCode/scan` | Record a scan event |
+| POST | `/api/analytics/session` | Log an AR viewing session |
+| GET | `/api/analytics/product/:productId` | Get aggregated analytics for a product |
 
 ## Tech
 
-- **Python 3.11** + **FastAPI**
-- **Redis** for menu catalog & analytics storage
-- **qrcode** + **Pillow** for QR code generation
-- Deployed on **CodeWords** serverless platform
+- **Node.js 18+** + **Express**
+- **PostgreSQL** (Supabase) for product catalog & analytics storage
+- Falls back to **in-memory mock data** when `DATABASE_URL` is not set
+- Deployed on **Render** (free tier)
 
-## Dependencies
+## Setup
 
-```
-codewords-client==0.4.5
-fastapi==0.116.1
-qrcode==8.0
-Pillow==11.1.0
-```
+See `backend/` directory for the full source code and `docs/DEPLOYMENT_GUIDE.md` for deployment instructions.

@@ -6,9 +6,9 @@ A complete QR-to-3D AR smart menu system for restaurants. Customers scan QR code
 
 | App | URL |
 |-----|-----|
-| **QR Generator** (Staff) | [smart-menu-qr.codewords.run](https://smart-menu-qr.codewords.run) |
-| **3D AR Viewer** (Customer) | [smart-menu-ar.codewords.run](https://smart-menu-ar.codewords.run) |
-| **GitHub Pages** | [vishnumgit.github.io/analysis-feedback-repo](https://vishnumgit.github.io/analysis-feedback-repo/) |
+| **QR Generator** (Staff) | [vishnumgit.github.io/analysis-feedback-repo](https://vishnumgit.github.io/analysis-feedback-repo/) |
+| **3D AR Viewer** (Customer) | [vishnumgit.github.io/analysis-feedback-repo/viewer.html](https://vishnumgit.github.io/analysis-feedback-repo/viewer.html) |
+| **Backend API** | [analysis-feedback-repo.onrender.com](https://analysis-feedback-repo.onrender.com) |
 
 ## How It Works
 
@@ -48,7 +48,7 @@ Restaurant Staff                    Customer
 
 | Component | Technology |
 |-----------|------------|
-| **Backend API** | Python, FastAPI, Redis, QR Code generation (CodeWords) |
+| **Backend API** | Node.js, Express, PostgreSQL (Supabase), deployed on Render |
 | **QR Generator App** | Next.js 16, TypeScript, Tailwind CSS, shadcn/ui |
 | **3D AR Viewer App** | Next.js 16, Google model-viewer, WebXR |
 | **GitHub Pages Version** | Pure HTML/CSS/JS, QRCode.js, model-viewer |
@@ -60,9 +60,14 @@ docs/                        <- GitHub Pages (static site)
   index.html                 <- QR Generator page
   viewer.html                <- 3D AR Viewer page
 
-smart_menu_ar/               <- Backend source code
-  smart_menu_ar_api.py       <- CodeWords backend service
-  README.md                  <- Backend documentation
+smart_menu_ar/               <- Backend documentation
+  README.md                  <- Backend API documentation
+
+backend/                     <- Node.js/Express backend (deploy to Render)
+  src/
+    server.js
+    routes/
+    config/
 ```
 
 ## Features
@@ -82,4 +87,4 @@ smart_menu_ar/               <- Backend source code
 3. Branch: **main**, Folder: **/docs**
 4. Click **Save**
 
-Built with [CodeWords](https://codewords.agemo.ai) by P Vishnuvardhan Reddy.
+Built by P Vishnuvardhan Reddy.
