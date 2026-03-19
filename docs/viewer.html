@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Menu - 3D AR Viewer</title>
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: linear-gradient(135deg, #0f172a, #1e293b, #0f172a); min-height: 100vh; color: #f8fafc; }
+    header { position: sticky; top: 0; z-index: 50; background: rgba(15,23,42,0.8); backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255,255,255,0.05); padding: 0.75rem 1rem; }
+    .header-inner { max-width: 640px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+    .back-link { display: flex; align-items: center; gap: 0.5rem; color: #94a3b8; text-decoration: none; font-size: 0.85rem; }
+    .back-link:hover { color: #f8fafc; }
+    .status { display: flex; align-items: center; gap: 0.5rem; font-size: 0.7rem; color: #64748b; }
+    .status .dot { width: 8px; height: 8px; background: #34d399; border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    main { max-width: 640px; margin: 0 auto; padding: 1.5rem 1rem; }
+    .viewer-container { position: relative; border-radius: 16px; overflow: hidden; background: linear-gradient(135deg, rgba(30,41,59,0.5), rgba(15,23,42,0.5)); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px rgba(245,158,11,0.05); }
+    model-viewer { width: 100%; height: 400px; background: transparent; --poster-color: transparent; }
+    .cat-badge { position: absolute; top: 16px; left: 16px; padding: 6px 12px; background: rgba(245,158,11,0.9); color: white; border-radius: 8px; font-size: 0.75rem; font-weight: 500; text-transform: capitalize; z-index: 10; backdrop-filter: blur(8px); }
+    .price-badge { position: absolute; top: 16px; right: 16px; padding: 8px 14px; background: rgba(15,23,42,0.8); backdrop-filter: blur(8px); color: white; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); z-index: 10; }
+    .price-badge span { font-size: 1.25rem; font-weight: 700; color: #fbbf24; }
+    .drag-hint { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; background: rgba(15,23,42,0.6); backdrop-filter: blur(8px); color: #94a3b8; padding: 6px 14px; border-radius: 999px; font-size: 0.7rem; border: 1px solid rgba(255,255,255,0.05); z-index: 10; }
+    .details { margin-top: 1.5rem; }
+    .details h1 { font-size: 1.5rem; font-weight: 700; color: #f8fafc; }
+    .details .desc { color: #94a3b8; margin-top: 0.5rem; line-height: 1.6; font-size: 0.9rem; }
+    .tags { display: flex; gap: 8px; margin-top: 1rem; flex-wrap: wrap; }
+    .tag { font-size: 0.72rem; padding: 4px 10px; border-radius: 6px; background: rgba(255,255,255,0.05); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.1); }
+    .nutrition-card { margin-top: 1.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.25rem; }
+    .nutrition-card h3 { font-size: 0.85rem; font-weight: 500; color: #f8fafc; margin-bottom: 1rem; }
+    .nutrition-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+    .nutrition-item { text-align: center; padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 12px; }
+    .nutrition-item .val { font-size: 1.3rem; font-weight: 700; }
+    .nutrition-item .val.cal { color: #fbbf24; }
+    .nutrition-item .val.pro { color: #34d399; }
+    .nutrition-item .val.carb { color: #38bdf8; }
+    .nutrition-item .label { font-size: 0.7rem; color: #64748b; margin-top: 4px; }
+    .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 1rem; }
+    .spinner { width: 64px; height: 64px; border: 4px solid rgba(245,158,11,0.2); border-top-color: #f59e0b; border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error { text-align: center; padding: 4rem 1rem; }
+    .error h2 { font-size: 1.3rem; margin-top: 1rem; }
+    .error p { color: #64748b; margin-top: 0.5rem; font-size: 0.85rem; }
+    .error a { display: inline-block; margin-top: 1rem; padding: 0.5rem 1.5rem; background: #f59e0b; color: #1c1917; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 0.85rem; }
+    footer { border-top: 1px solid rgba(255,255,255,0.05); margin-top: 3rem; padding: 1.5rem; text-align: center; font-size: 0.7rem; color: #334155; }
+    #app { display: none; }
+  </style>
+</head>
+<body>
+  <div class="loading" id="loadingState">
+    <div class="spinner"></div>
+    <p style="color:#94a3b8;font-size:0.85rem">Loading 3D experience...</p>
+  </div>
+
+  <div class="error" id="errorState" style="display:none">
+    <div style="font-size:3rem">&#127860;</div>
+    <h2>Item not found</h2>
+    <p>This menu item may have been removed.</p>
+    <a href="index.html">Browse Menu</a>
+  </div>
+
+  <div id="app">
+    <header>
+      <div class="header-inner">
+        <a href="index.html" class="back-link">&larr; Menu</a>
+        <div class="status"><div class="dot"></div> 3D View</div>
+      </div>
+    </header>
+    <main>
+      <div class="viewer-container">
+        <div class="cat-badge" id="itemCategory"></div>
+        <div class="price-badge"><span id="itemPrice"></span></div>
+        <model-viewer id="modelViewer" auto-rotate camera-controls touch-action="pan-y" ar ar-modes="webxr scene-viewer quick-look" shadow-intensity="1" shadow-softness="0.5" exposure="1.2" environment-image="neutral">
+          <button slot="ar-button" style="background:#f59e0b;color:#fff;border:none;border-radius:12px;padding:8px 16px;position:absolute;bottom:16px;left:50%;transform:translateX(-50%);font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(245,158,11,0.4)">View in AR</button>
+        </model-viewer>
+        <div class="drag-hint">&#9726; Drag to rotate</div>
+      </div>
+      <div class="details">
+        <h1 id="itemName"></h1>
+        <p class="desc" id="itemDesc"></p>
+        <div class="tags" id="itemTags"></div>
+        <div class="nutrition-card">
+          <h3>&#9432; Nutrition Info</h3>
+          <div class="nutrition-grid">
+            <div class="nutrition-item"><p class="val cal" id="itemCal"></p><p class="label">Calories</p></div>
+            <div class="nutrition-item"><p class="val pro" id="itemPro"></p><p class="label">Protein</p></div>
+            <div class="nutrition-item"><p class="val carb" id="itemCarb"></p><p class="label">Carbs</p></div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <footer>Smart Menu 3D AR Viewer &mdash; Powered by CodeWords</footer>
+  </div>
+
+  <script>
+    const menuItems = [
+      {id:1,name:"Classic Burger",slug:"classic-burger",description:"Juicy beef patty with lettuce, tomato, cheese, and our secret sauce on a toasted brioche bun.",price:8.99,category:"mains",model_url:"https://modelviewer.dev/shared-assets/models/Astronaut.glb",nutrition:{calories:650,protein:"35g",carbs:"45g"},tags:["popular","beef"]},
+      {id:2,name:"Margherita Pizza",slug:"margherita-pizza",description:"Hand-tossed dough with San Marzano tomato sauce, fresh mozzarella, and basil leaves.",price:12.99,category:"mains",model_url:"https://modelviewer.dev/shared-assets/models/NeilArmstrong.glb",nutrition:{calories:850,protein:"28g",carbs:"95g"},tags:["vegetarian","popular"]},
+      {id:3,name:"Caesar Salad",slug:"caesar-salad",description:"Crisp romaine lettuce, parmesan, croutons, and creamy Caesar dressing.",price:7.49,category:"starters",model_url:"https://modelviewer.dev/shared-assets/models/Astronaut.glb",nutrition:{calories:320,protein:"12g",carbs:"18g"},tags:["healthy","vegetarian"]},
+      {id:4,name:"Chocolate Lava Cake",slug:"chocolate-lava-cake",description:"Warm chocolate cake with a molten center, served with vanilla ice cream.",price:6.99,category:"desserts",model_url:"https://modelviewer.dev/shared-assets/models/NeilArmstrong.glb",nutrition:{calories:480,protein:"6g",carbs:"58g"},tags:["popular","sweet"]},
+      {id:5,name:"Grilled Chicken Wings",slug:"grilled-chicken-wings",description:"Smoky grilled wings tossed in buffalo sauce, served with blue cheese dip.",price:9.49,category:"starters",model_url:"https://modelviewer.dev/shared-assets/models/Astronaut.glb",nutrition:{calories:520,protein:"42g",carbs:"8g"},tags:["spicy","popular"]},
+      {id:6,name:"Iced Matcha Latte",slug:"iced-matcha-latte",description:"Premium Japanese matcha whisked with oat milk over ice.",price:4.99,category:"drinks",model_url:"https://modelviewer.dev/shared-assets/models/NeilArmstrong.glb",nutrition:{calories:180,protein:"4g",carbs:"22g"},tags:["cold","healthy"]}
+    ];
+
+    function getSlug() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('item')) return params.get('item');
+      const path = window.location.pathname;
+      const match = path.match(/\/item\/([^/]+)/);
+      return match ? match[1] : null;
+    }
+
+    function renderItem(item) {
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('modelViewer').setAttribute('src', item.model_url);
+      document.getElementById('modelViewer').setAttribute('alt', '3D model of ' + item.name);
+      document.getElementById('itemCategory').textContent = item.category;
+      document.getElementById('itemPrice').textContent = '$' + item.price.toFixed(2);
+      document.getElementById('itemName').textContent = item.name;
+      document.getElementById('itemDesc').textContent = item.description;
+      document.getElementById('itemCal').textContent = item.nutrition.calories;
+      document.getElementById('itemPro').textContent = item.nutrition.protein;
+      document.getElementById('itemCarb').textContent = item.nutrition.carbs;
+      document.getElementById('itemTags').innerHTML = item.tags.map(t => '<span class="tag">' + t + '</span>').join('');
+      document.title = item.name + ' - Smart Menu 3D AR';
+    }
+
+    function showError() {
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('errorState').style.display = 'block';
+    }
+
+    const slug = getSlug();
+    if (!slug) { showError(); }
+    else {
+      const item = menuItems.find(i => i.slug === slug);
+      if (item) { renderItem(item); }
+      else { showError(); }
+    }
+  </script>
+</body>
+</html>
