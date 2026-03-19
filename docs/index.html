@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Menu - QR Code Generator</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: linear-gradient(135deg, #fffbeb, #fff7ed, #fff1f2); min-height: 100vh; color: #1c1917; }
+    header { position: sticky; top: 0; z-index: 50; backdrop-filter: blur(16px); background: rgba(255,255,255,0.8); border-bottom: 1px solid rgba(217,168,60,0.2); padding: 1rem 1.5rem; }
+    .header-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+    .logo { display: flex; align-items: center; gap: 0.75rem; }
+    .logo-icon { width: 44px; height: 44px; background: linear-gradient(135deg, #f59e0b, #ea580c); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.4rem; box-shadow: 0 4px 12px rgba(245,158,11,0.3); }
+    .logo h1 { font-size: 1.25rem; font-weight: 700; background: linear-gradient(to right, #92400e, #ea580c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .logo p { font-size: 0.7rem; color: rgba(180,120,50,0.7); }
+    .search { position: relative; max-width: 280px; width: 100%; }
+    .search input { width: 100%; padding: 0.5rem 0.75rem 0.5rem 2.2rem; border: 1px solid #e2c78a; border-radius: 12px; background: rgba(255,251,235,0.5); font-size: 0.85rem; outline: none; }
+    .search input:focus { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.1); }
+    .search svg { position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: #d4a24a; }
+    main { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+    .filters { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2rem; }
+    .filter-btn { padding: 0.4rem 1rem; border-radius: 999px; border: 1px solid #e2c78a; background: white; color: #92400e; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    .filter-btn:hover { background: #fffbeb; }
+    .filter-btn.active { background: linear-gradient(to right, #f59e0b, #ea580c); color: white; border-color: transparent; box-shadow: 0 4px 12px rgba(245,158,11,0.3); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
+    .card { background: rgba(255,255,255,0.8); border: 1px solid rgba(217,168,60,0.15); border-radius: 16px; overflow: hidden; transition: all 0.3s; backdrop-filter: blur(8px); }
+    .card:hover { border-color: #d4a24a; box-shadow: 0 20px 40px rgba(245,158,11,0.08); transform: translateY(-2px); }
+    .card-img { height: 200px; overflow: hidden; position: relative; }
+    .card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+    .card:hover .card-img img { transform: scale(1.08); }
+    .card-img .overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.4), transparent); }
+    .card-img .cat-badge { position: absolute; top: 12px; left: 12px; padding: 4px 10px; border-radius: 8px; font-size: 0.7rem; font-weight: 500; text-transform: capitalize; }
+    .cat-mains { background: rgba(255,237,213,0.9); color: #c2410c; }
+    .cat-starters { background: rgba(209,250,229,0.9); color: #047857; }
+    .cat-desserts { background: rgba(252,231,243,0.9); color: #be185d; }
+    .cat-drinks { background: rgba(224,242,254,0.9); color: #0369a1; }
+    .card-img .price { position: absolute; bottom: 12px; right: 12px; font-size: 1.5rem; font-weight: 700; color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+    .card-body { padding: 1rem; }
+    .card-body h3 { font-size: 1.1rem; font-weight: 600; color: #1c1917; margin-bottom: 4px; }
+    .card-body .desc { font-size: 0.82rem; color: rgba(120,80,40,0.7); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 8px; }
+    .card-body .nutrition { font-size: 0.72rem; color: rgba(120,80,40,0.5); margin-bottom: 10px; }
+    .tags { display: flex; gap: 6px; margin-bottom: 12px; }
+    .tag { font-size: 0.68rem; padding: 2px 8px; border-radius: 6px; background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+    .qr-btn { width: 100%; padding: 0.6rem; border: none; border-radius: 10px; background: linear-gradient(to right, #f59e0b, #ea580c); color: white; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .qr-btn:hover { filter: brightness(1.1); box-shadow: 0 4px 14px rgba(245,158,11,0.4); }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+    .modal-overlay.open { display: flex; }
+    .modal { background: white; border-radius: 20px; padding: 2rem; max-width: 400px; width: 90%; text-align: center; position: relative; }
+    .modal h3 { font-size: 1.2rem; color: #1c1917; margin-bottom: 1rem; }
+    .modal .qr-wrap { padding: 1rem; background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(245,158,11,0.1); border: 1px solid #fde68a; display: inline-block; margin-bottom: 1rem; }
+    .modal .qr-url { font-size: 0.7rem; color: #92400e; background: #fffbeb; padding: 6px 12px; border-radius: 999px; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .modal .hint { font-size: 0.82rem; color: rgba(120,80,40,0.7); margin: 0.75rem 0; }
+    .modal .close-btn { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e5e7eb; background: white; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; }
+    .empty { text-align: center; padding: 4rem 0; color: rgba(120,80,40,0.5); }
+    .empty h3 { font-size: 1.1rem; color: #92400e; margin-top: 1rem; }
+    footer { border-top: 1px solid rgba(217,168,60,0.15); background: rgba(255,255,255,0.5); margin-top: 3rem; padding: 1.5rem; text-align: center; font-size: 0.75rem; color: rgba(120,80,40,0.4); }
+    @media(max-width: 640px) { .search { display: none; } .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">&#127860;</div>
+        <div><h1>Smart Menu</h1><p>QR Code Generator</p></div>
+      </div>
+      <div class="search">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" id="searchInput" placeholder="Search menu items..." oninput="renderMenu()">
+      </div>
+    </div>
+  </header>
+  <main>
+    <div class="filters" id="filters"></div>
+    <div class="grid" id="menuGrid"></div>
+    <div class="empty" id="emptyState" style="display:none">
+      <div style="font-size:3rem">&#127860;</div>
+      <h3>No items found</h3>
+      <p>Try adjusting your search or filter</p>
+    </div>
+  </main>
+  <div class="modal-overlay" id="qrModal">
+    <div class="modal">
+      <button class="close-btn" onclick="closeModal()">&times;</button>
+      <h3 id="modalTitle"></h3>
+      <div class="qr-wrap" id="qrContainer"></div>
+      <p class="hint">Scan this QR code to view in 3D AR</p>
+      <div class="qr-url" id="qrUrl"></div>
+    </div>
+  </div>
+  <footer>Smart Menu QR Generator &mdash; Powered by CodeWords</footer>
+
+  <script>
+    const VIEWER_BASE = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+      ? location.origin + '/viewer.html'
+      : location.origin.replace('smart-menu-qr', 'smart-menu-ar').replace(/\/$/, '') + '/item';
+    const USE_PAGES = location.hostname.includes('github.io');
+
+    const menuItems = [
+      {id:1,name:"Classic Burger",slug:"classic-burger",description:"Juicy beef patty with lettuce, tomato, cheese, and our secret sauce on a toasted brioche bun.",price:8.99,category:"mains",image_url:"https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400",model_url:"https://modelviewer.dev/shared-assets/models/Astronaut.glb",nutrition:{calories:650,protein:"35g",carbs:"45g"},tags:["popular","beef"]},
+      {id:2,name:"Margherita Pizza",slug:"margherita-pizza",description:"Hand-tossed dough with San Marzano tomato sauce, fresh mozzarella, and basil leaves.",price:12.99,category:"mains",image_url:"https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400",model_url:"https://modelviewer.dev/shared-assets/models/NeilArmstrong.glb",nutrition:{calories:850,protein:"28g",carbs:"95g"},tags:["vegetarian","popular"]},
+      {id:3,name:"Caesar Salad",slug:"caesar-salad",description:"Crisp romaine lettuce, parmesan, croutons, and creamy Caesar dressing.",price:7.49,category:"starters",image_url:"https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400",model_url:"https://modelviewer.dev/shared-assets/models/Astronaut.glb",nutrition:{calories:320,protein:"12g",carbs:"18g"},tags:["healthy","vegetarian"]},
+      {id:4,name:"Chocolate Lava Cake",slug:"chocolate-lava-cake",description:"Warm chocolate cake with a molten center, served with vanilla ice cream.",price:6.99,category:"desserts",image_url:"https://images.unsplash.com/photo-1624353365286-3f8d62daad51?w=400",model_url:"https://modelviewer.dev/shared-assets/models/NeilArmstrong.glb",nutrition:{calories:480,protein:"6g",carbs:"58g"},tags:["popular","sweet"]},
+      {id:5,name:"Grilled Chicken Wings",slug:"grilled-chicken-wings",description:"Smoky grilled wings tossed in buffalo sauce, served with blue cheese dip.",price:9.49,category:"starters",image_url:"https://images.unsplash.com/photo-1527477396000-e27163b481c2?w=400",model_url:"https://modelviewer.dev/shared-assets/models/Astronaut.glb",nutrition:{calories:520,protein:"42g",carbs:"8g"},tags:["spicy","popular"]},
+      {id:6,name:"Iced Matcha Latte",slug:"iced-matcha-latte",description:"Premium Japanese matcha whisked with oat milk over ice.",price:4.99,category:"drinks",image_url:"https://images.unsplash.com/photo-1536256263959-770b48d82b0a?w=400",model_url:"https://modelviewer.dev/shared-assets/models/NeilArmstrong.glb",nutrition:{calories:180,protein:"4g",carbs:"22g"},tags:["cold","healthy"]}
+    ];
+
+    let activeCategory = 'all';
+    const categories = [...new Set(menuItems.map(i => i.category))].sort();
+    const catClass = {mains:'cat-mains',starters:'cat-starters',desserts:'cat-desserts',drinks:'cat-drinks'};
+
+    function initFilters() {
+      const el = document.getElementById('filters');
+      el.innerHTML = `<button class="filter-btn active" onclick="setFilter('all')">All Items</button>` +
+        categories.map(c => `<button class="filter-btn" onclick="setFilter('${c}')">${c.charAt(0).toUpperCase()+c.slice(1)}</button>`).join('');
+    }
+
+    function setFilter(cat) {
+      activeCategory = cat;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      renderMenu();
+    }
+
+    function renderMenu() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const filtered = menuItems.filter(i => {
+        const matchCat = activeCategory === 'all' || i.category === activeCategory;
+        const matchSearch = !search || i.name.toLowerCase().includes(search) || i.description.toLowerCase().includes(search);
+        return matchCat && matchSearch;
+      });
+      const grid = document.getElementById('menuGrid');
+      const empty = document.getElementById('emptyState');
+      if (filtered.length === 0) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+      grid.innerHTML = filtered.map(item => `
+        <div class="card">
+          <div class="card-img">
+            <img src="${item.image_url}" alt="${item.name}" loading="lazy">
+            <div class="overlay"></div>
+            <span class="cat-badge ${catClass[item.category]}">${item.category}</span>
+            <span class="price">$${item.price.toFixed(2)}</span>
+          </div>
+          <div class="card-body">
+            <h3>${item.name}</h3>
+            <p class="desc">${item.description}</p>
+            <p class="nutrition">${item.nutrition.calories} cal | ${item.nutrition.protein} protein | ${item.nutrition.carbs} carbs</p>
+            <div class="tags">${item.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+            <button class="qr-btn" onclick="generateQR('${item.slug}', '${item.name}')">
+              &#9641;&#9641;&#9641; Generate QR Code
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function generateQR(slug, name) {
+      const url = USE_PAGES
+        ? location.origin + location.pathname.replace(/\/[^/]*$/, '/viewer.html') + '?item=' + slug
+        : 'https://smart-menu-ar.codewords.run/item/' + slug;
+      document.getElementById('modalTitle').textContent = name;
+      document.getElementById('qrUrl').textContent = url;
+      const container = document.getElementById('qrContainer');
+      container.innerHTML = '';
+      new QRCode(container, { text: url, width: 200, height: 200, colorDark: '#1c1917', colorLight: '#ffffff' });
+      document.getElementById('qrModal').classList.add('open');
+    }
+
+    function closeModal() { document.getElementById('qrModal').classList.remove('open'); }
+    document.getElementById('qrModal').addEventListener('click', e => { if (e.target.id === 'qrModal') closeModal(); });
+
+    initFilters();
+    renderMenu();
+  </script>
+</body>
+</html>
